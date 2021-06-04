@@ -45,7 +45,6 @@ int** board_init(int row, int column) {
   for (int i = 0; i < row; i++)
      for (int j = 0; j < column; j++)
         *(board[i] + j) = rand()%3;
-
   return board;
 }
 
@@ -91,7 +90,7 @@ void blueMovement(int** board, int n){
   }
 }
 
-bool determineConvergence(int** board, int n, int tile_size, int tile_row, int tile_column, int cells_in_tile, int c, bool finished, int tid){
+bool determineConvergence(int** board, int n, int tile_size, int tile_row, int tile_column, int cells_in_tile, int c , int tid){
 
   /* check every tiles to see if any tile’s colored cells are more than c% in one color (blue or red) */
   // Loop structure:
@@ -99,17 +98,16 @@ bool determineConvergence(int** board, int n, int tile_size, int tile_row, int t
   //   -tile_column(t_c) loop
   //         -cell_row(c_r) loop
   //              -cell_column(c_c) loop
-
   int red_1_count, blue_2_count;
   double red_percentage, blue_percentage;
-  int t_r, t_c, c_r, c_c; 
-
+  int t_r, t_c, c_r, c_c;
+  bool local_finished;
+  
   for (t_r = 0; t_r < tile_row; t_r++) {
     for (t_c = 0; t_c < tile_column; t_c++) {
       /* initialize and reset red/blue count to Zero for each tile*/
       red_1_count = 0;
       blue_2_count = 0;
-
       for (c_r = t_r * tile_size; c_r < (t_r+1)*tile_size; c_r++) {    //(t_r+1)*t is the start row of the below tile
         for (c_c = t_c * tile_size; c_c < (t_c+1)*tile_size; c_c++){   //(t_c+1)*t is the start column of the tile on the right
           //printf("%d ", *(board[c_r]+c_c));          //Print Tiles
@@ -127,8 +125,8 @@ bool determineConvergence(int** board, int n, int tile_size, int tile_row, int t
       blue_percentage = ((double)blue_2_count/cells_in_tile)*100;
       
       if (red_percentage > c) {
-        finished = true;
-        printf("[Process #%d] %s [serial]: converged RED with %d red cells ==> %.2f percent ==> converged tile:\n", tid, time_local, red_1_count, red_percentage);
+        local_finished = true;
+        printf("[Thread #%d] %s [serial]: converged RED with %d red cells ==> %.2f percent ==> converged tile:\n", tid, time_local, red_1_count, red_percentage);
         /* print out the converged tile */
         for (int c_r = t_r * tile_size; c_r < (t_r+1)*tile_size; c_r++) {
           for (int c_c = t_c * tile_size; c_c < (t_c+1)*tile_size; c_c++){
@@ -139,8 +137,8 @@ bool determineConvergence(int** board, int n, int tile_size, int tile_row, int t
         break;
       }
       else if (blue_percentage > c) {
-        finished = true;
-        printf("[Process #%d] %s [serial]: converged BLUE with %d blue cells ==> %.2f percent ==> converged tile:\n",tid, time_local, blue_2_count, blue_percentage);
+        local_finished = true;
+        printf("[Thread #%d] %s [serial]: converged BLUE with %d blue cells ==> %.2f percent ==> converged tile:\n",tid, time_local, blue_2_count, blue_percentage);
         /* print out the converged tile */
         for (int c_r = t_r * tile_size; c_r < (t_r+1)*tile_size; c_r++) {
           for (int c_c = t_c * tile_size; c_c < (t_c+1)*tile_size; c_c++){
@@ -151,10 +149,11 @@ bool determineConvergence(int** board, int n, int tile_size, int tile_row, int t
         break;
       }
     }
+    if (local_finished == true); break;
   }
-  return finished;
+  return local_finished;
 }
-
+/*
 void sequentialComputation(int** board, int n, int t, int c, int max_iters){
   
 
@@ -164,19 +163,17 @@ void sequentialComputation(int** board, int n, int t, int c, int max_iters){
   int tile_row = n/(n/t);
   int tile_column = n/(n/t);
 
-  bool finished = false;
+  bool *finished = false;
   int n_itrs = 0; 
 
   while (!finished && n_itrs < max_iters){
     n_itrs++;
     redMovement(board,n);
     blueMovement(board,n);
-    /***** Stage 3: Determine if the computation has converged ******/
     int tid=0;
     determineConvergence(board,n,tile_size,tile_row,tile_column,cells_in_tile,c,finished,tid);
     if (finished) break;
   }
-  /*
     printf("[Process #%d] %s [serial]: serial computation interation = [%d]\n", myid, time_local, n_itrs);
     for(i=0; i<M; i++){
       for(j=0; j<N; j++){
@@ -185,8 +182,9 @@ void sequentialComputation(int** board, int n, int t, int c, int max_iters){
         printf("\n");
       }
     }
-  } */
+  } 
 }
+*/
 
 void *threadComputation(void *thread_arg){
 
@@ -197,7 +195,7 @@ void *threadComputation(void *thread_arg){
   int grid_start;
   int grid_end;
 
-  bool finished = false;
+  bool local_finished;
   int n_itrs = 0; 
 
   /* Initialize thread portion of the sub-board */
@@ -214,16 +212,15 @@ void *threadComputation(void *thread_arg){
   int tile_row = n/(n/t);
   int tile_column = n/(n/t);
 
-  while (!finished && n_itrs < max_iters){
+  while (!(local_finished) && n_itrs < max_iters){
     n_itrs++;
     redMovement(board,n);
     blueMovement(board,n);
-    determineConvergence(board,n,tile_size,tile_row,tile_column,cells_in_tile,c,finished,tid);
-    if (finished) break;
+    local_finished = determineConvergence(board,n,tile_size,tile_row,tile_column,cells_in_tile,c,tid);
+    if (local_finished) break;
   }
+  printf("\nTotal iterations = %d\n", n_itrs);
 }
-
-
 
 int main(int argc, char **argv) {
 
@@ -300,9 +297,6 @@ int main(int argc, char **argv) {
     printf("[Process #%d] %s [serial]: serial computation starting...\n", myid, time_local);
     clock_t begin = clock();
     
-    
-
-
     /* distribute load and create threads for computation */
     thread_data_array[0].tid = 0;
     thread_data_array[0].board = board; 
@@ -331,10 +325,15 @@ int main(int argc, char **argv) {
     }
     printf("[Process #%d] %s [serial]: computation convergence time [%f]\n", myid, time_local, time_spent_serial);
   }
+  
+  
+  else {
+    
+  }
+  
+  
   pthread_exit (NULL);
 }
-
-
 
 int* calculateSubBoard(int board, int num_thrds, int n, int t, int tid ) {
       //compute a sub-board for every other processes
