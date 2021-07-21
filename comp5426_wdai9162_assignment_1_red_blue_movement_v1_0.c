@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
   /* user input preliminary check */
   if(argc < 5 || argc > 5 ) {
     printf("[Error]!!4 arguments expected!!\n");
-    printf("Input Format: mpirun –np <# of process> comp5426_wdai9162_assignment_1_red_blue_movement_v1_0 <grid size: int n> <tile size: int t> <threshold(%): int c> <max iteration: int max_iters>\n");
+    printf("Input Format: mpirun –np <# of process> comp5426_wdai9162_assignment_1_red_blue_movement_v1_0 <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
     printf("SAMPLE: mpirun –np 5 main 50 5 85 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
     exit(1);
    }
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
   }
   else if(atoi(argv[1])<0||atoi(argv[2])<0||atoi(argv[3])<0||atoi(argv[4])<0||atoi(argv[3])>100){
     printf("[Error]!!Do NOT input negative numbers or threshold c larger than 100!!\n");
-    printf("Input Format: mpirun –np <# of process> comp5426_wdai9162_assignment_1_red_blue_movement_v1_0 <grid size: int n> <tile size: int t> <threshold(%): int c> <max iteration: int max_iters>\n");
+    printf("Input Format: mpirun –np <# of process> comp5426_wdai9162_assignment_1_red_blue_movement_v1_0 <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
     printf("SAMPLE: mpirun –np 5 main 50 5 85 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
     exit(1);
   }
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
   /* user input preliminary check */
   if(numprocs > t){
     printf("[Error]!!You are wasting computational resource!!Be frugal!!\n");
-    printf("Input Format: mpirun –np <# of process> comp5426_wdai9162_assignment_1_red_blue_movement_v1_0 <grid size: int n> <tile size: int t> <threshold(%): int c> <max iteration: int max_iters>\n");
+    printf("Input Format: mpirun –np <# of process> comp5426_wdai9162_assignment_1_red_blue_movement_v1_0 <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
     printf("SAMPLE: mpirun –np 5 main 50 5 85 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
     exit(0);
   }
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
     printf("\n=================================================\n");
     printf("The grid size：n = %d\n", n);
     printf("The tile grid size: t = %d\n", t);
-    printf("The terminating threshold: c = %d%\n", c);
+    printf("The terminating threshold: c = %d\n", c);
     printf("The maximum number of iterations: max_iters = %d\n", max_iters);
     printf("Current Local Time: %s\n", time_local);
     printf("=================================================\n");
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
 
            if (red_percentage > c) {
              finished = true;
-             printf("[Process #%d] %s [serial]: converged RED with %d red cells ==> [%.2f%] ==> converged tile:\n", myid, time_local, red_1_count, red_percentage);
+             printf("[Process #%d] %s [serial]: converged RED with %d red cells ==> [%.2f] ==> converged tile:\n", myid, time_local, red_1_count, red_percentage);
              /* print out the converged tile */
              for (int c_r = t_r * tile_size; c_r < (t_r+1)*tile_size; c_r++) {
                 for (int c_c = t_c * tile_size; c_c < (t_c+1)*tile_size; c_c++){
@@ -206,7 +206,7 @@ int main(int argc, char **argv) {
            }
            else if (blue_percentage > c) {
              finished = true;
-             printf("[Process #%d] %s [serial]: converged BLUE with %d blue cells ==> [%.2f%] ==> converged tile:\n",myid, time_local, blue_2_count, blue_percentage);
+             printf("[Process #%d] %s [serial]: converged BLUE with %d blue cells ==> [%.2f] ==> converged tile:\n",myid, time_local, blue_2_count, blue_percentage);
              /* print out the converged tile */
              for (int c_r = t_r * tile_size; c_r < (t_r+1)*tile_size; c_r++) {
                for (int c_c = t_c * tile_size; c_c < (t_c+1)*tile_size; c_c++){
@@ -216,8 +216,8 @@ int main(int argc, char **argv) {
              }
              break;
            }
-           //printf("red = %d ==> %.2f%\n",red_1_count_check, red_percentage_check);  //Print Tiles - result
-           //printf("blu = %d ==> %.2f%\n",blue_2_count_check, blue_percentage_check);//Print Tiles - result
+           //printf("red = %d ==> %.2f\n",red_1_count_check, red_percentage_check);  //Print Tiles - result
+           //printf("blu = %d ==> %.2f\n",blue_2_count_check, blue_percentage_check);//Print Tiles - result
            //printf("==========\n");
          }
          if (finished) break;
@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
       printf("\n=================================================\n");
       printf("The grid size：n = %d\n", n);
       printf("The tile grid size: t = %d\n", t);
-      printf("The terminating threshold: c = %d%\n", c);
+      printf("The terminating threshold: c = %d\n", c);
       printf("The maximum number of iterations: max_iters = %d\n", max_iters);
       printf("Current Local Time: %s\n", time_local);
       printf("=================================================\n");
@@ -271,6 +271,7 @@ int main(int argc, char **argv) {
   		}
 
       printf("\n[Process #%d] %s [parallel]: INITIAL STATE of the board:\n\n", myid, time_local);
+      /*
       for (int i = 0; i < n; i++) {
            for (int j = 0; j < n; j++) {
               printf("%d ", *(p_board_row[i] + j));
@@ -278,7 +279,7 @@ int main(int argc, char **argv) {
            printf("\n");
         }
       printf("\n=================================================\n");
-
+      */
 
 			//compute a sub-board for every other processes
       //evenly allocate tiles so that each process has row difference no greater than one tile row
@@ -405,7 +406,7 @@ int main(int argc, char **argv) {
          double blue_percentage = ((double)blue_2_count/cells_in_tile)*100;
          if (red_percentage > c) {
            local_finished = true;
-           printf("[Process #%d] %s [parallel]: converged RED with %d red cells ==> [%.2f%] ==> converged tile:\n", myid, time_local, red_1_count, red_percentage);
+           printf("[Process #%d] %s [parallel]: converged RED with %d red cells ==> [%.2f] ==> converged tile:\n", myid, time_local, red_1_count, red_percentage);
            /* print out the converged tile */
            for (int c_r = t_r * tile_size + 1; c_r < (t_r+1)*tile_size+1; c_r++) {
               for (int c_c = t_c * tile_size; c_c < (t_c+1)*tile_size; c_c++){
@@ -417,7 +418,7 @@ int main(int argc, char **argv) {
          }
          else if (blue_percentage > c) {
            local_finished = true;
-           printf("[Process #%d] %s [parallel]: converged BLUE with %d blue cells ==> [%.2f%] ==> converged tile:\n", myid, time_local, blue_2_count, blue_percentage);
+           printf("[Process #%d] %s [parallel]: converged BLUE with %d blue cells ==> [%.2f] ==> converged tile:\n", myid, time_local, blue_2_count, blue_percentage);
            /* print out the converged tile */
            for (int c_r = t_r * tile_size + 1; c_r < (t_r+1)*tile_size+1; c_r++) {
              for (int c_c = t_c * tile_size; c_c < (t_c+1)*tile_size; c_c++){
@@ -427,8 +428,8 @@ int main(int argc, char **argv) {
            }
            break;
          }
-         //printf("red = %d ==> %.2f%\n",red_1_count, red_percentage);  //Print Tiles - result
-         //printf("blu = %d ==> %.2f%\n",blue_2_count, blue_percentage);//Print Tiles - result
+         //printf("red = %d ==> %.2f\n",red_1_count, red_percentage);  //Print Tiles - result
+         //printf("blu = %d ==> %.2f\n",blue_2_count, blue_percentage);//Print Tiles - result
          //printf("==========\n");
        }
        if (local_finished) break;
@@ -468,13 +469,15 @@ int main(int argc, char **argv) {
       printf("\n[Process #%d] %s [parallel]: results received from all processes!\n", myid, time_local);
   		printf("[Process #%d] %s [parallel]: total iterations elapsed = [%d].\n", myid, time_local, n_itrs);
       printf("[Process #%d] %s [parallel]: FINAL STATE of the board:\n", myid, time_local);
-  		for(i=0; i<M; i++){
+  		/*
+      for(i=0; i<M; i++){
   			for(j=0; j<N; j++){
   				printf("%d ", p_board_row_final[i][j]);
   				if(j == N - 1)
   				printf("\n");
   			}
   		}
+      */
 
       /* Self checking serialization computation */
       printf("[Process #%d] %s [parallel][check]: self check starting in 5 seconds...\n", myid, time_local);
@@ -569,7 +572,7 @@ int main(int argc, char **argv) {
 
              if (red_percentage_check > c) {
                finished_check = true;
-               printf("[Process #%d] %s [parallel][check]: converged RED with %d red cells ==> [%.2f%] ==> converged tile:\n", myid, time_local, red_1_count_check, red_percentage_check);
+               printf("[Process #%d] %s [parallel][check]: converged RED with %d red cells ==> [%.2f] ==> converged tile:\n", myid, time_local, red_1_count_check, red_percentage_check);
                /* print out the converged tile */
                for (int c_r = t_r * tile_size; c_r < (t_r+1)*tile_size; c_r++) {
                   for (int c_c = t_c * tile_size; c_c < (t_c+1)*tile_size; c_c++){
@@ -581,7 +584,7 @@ int main(int argc, char **argv) {
              }
              else if (blue_percentage_check > c) {
                finished_check = true;
-               printf("[Process #%d] %s [parallel][check]: converged BLUE with %d blue cells ==> [%.2f%] ==> converged tile:\n",myid, time_local, blue_2_count_check, blue_percentage_check);
+               printf("[Process #%d] %s [parallel][check]: converged BLUE with %d blue cells ==> [%.2f] ==> converged tile:\n",myid, time_local, blue_2_count_check, blue_percentage_check);
                /* print out the converged tile */
                for (int c_r = t_r * tile_size; c_r < (t_r+1)*tile_size; c_r++) {
                  for (int c_c = t_c * tile_size; c_c < (t_c+1)*tile_size; c_c++){
@@ -591,8 +594,8 @@ int main(int argc, char **argv) {
                }
                break;
              }
-             //printf("red = %d ==> %.2f%\n",red_1_count_check, red_percentage_check);  //Print Tiles - result
-             //printf("blu = %d ==> %.2f%\n",blue_2_count_check, blue_percentage_check);//Print Tiles - result
+             //printf("red = %d ==> %.2f\n",red_1_count_check, red_percentage_check);  //Print Tiles - result
+             //printf("blu = %d ==> %.2f\n",blue_2_count_check, blue_percentage_check);//Print Tiles - result
              //printf("==========\n");
            }
            if (finished_check) break;
@@ -602,6 +605,7 @@ int main(int argc, char **argv) {
       double time_spent_check = (double)(end_c - begin_c) / CLOCKS_PER_SEC;
 
       printf("[Process #%d] %s [parallel][check]: self checking iteration = [%d] ==> FINAL CHECK STATE of the board:\n", myid, time_local,n_itrs_check);
+      /*
       for(i=0; i<M; i++){
         for(j=0; j<N; j++){
           printf("%d ", p_board_row[i][j]);
@@ -609,6 +613,7 @@ int main(int argc, char **argv) {
           printf("\n");
         }
       }
+      */
       //validate each cell and count the difference
       int cell_dif = 0;
       for(i=0; i<M; i++){
@@ -622,7 +627,7 @@ int main(int argc, char **argv) {
         printf("[Process #%d] %s [parallel][check]: parallel computation matches self checking serial computation result!!\n", myid, time_local);
       }
       else {
-        printf("[Process #%d] %s [parallel][check]: Oops...there are [%d] cells different between parallel computation and self checking serial computation result...\n", cell_dif);
+        
       }
       printf("[Process #%d] %s [parallel]: parallel computation convergence time [%f]\n", myid, time_local, time_spent_parallel);
       printf("[Process #%d] %s [parallel]:  serial  computation convergence time [%f]\n", myid, time_local, time_spent_check);
@@ -728,7 +733,7 @@ int main(int argc, char **argv) {
          double blue_percentage = ((double)blue_2_count/cells_in_tile)*100;
          if (red_percentage > c) {
            local_finished = true;
-           printf("[Process #%d] %s [parallel]: converged RED with %d red cells ==> [%.2f%] ==> converged tile:\n", myid, time_local, red_1_count, red_percentage);
+           printf("[Process #%d] %s [parallel]: converged RED with %d red cells ==> [%.2f] ==> converged tile:\n", myid, time_local, red_1_count, red_percentage);
            /* print out the converged tile */
            for (int c_r = t_r * tile_size + 1; c_r < (t_r+1)*tile_size+1; c_r++) {
               for (int c_c = t_c * tile_size; c_c < (t_c+1)*tile_size; c_c++){
@@ -740,7 +745,7 @@ int main(int argc, char **argv) {
          }
          else if (blue_percentage > c) {
            local_finished = true;
-           printf("[Process #%d] %s [parallel]: converged BLUE with %d blue cells ==> [%.2f%] ==> converged tile:\n", myid, time_local, blue_2_count, blue_percentage);
+           printf("[Process #%d] %s [parallel]: converged BLUE with %d blue cells ==> [%.2f] ==> converged tile:\n", myid, time_local, blue_2_count, blue_percentage);
            /* print out the converged tile */
            for (int c_r = t_r * tile_size + 1; c_r < (t_r+1)*tile_size+1; c_r++) {
              for (int c_c = t_c * tile_size; c_c < (t_c+1)*tile_size; c_c++){
@@ -751,8 +756,8 @@ int main(int argc, char **argv) {
            break;
          }
           /* print out result for every tile */
-         //printf("red = %d ==> %.2f%\n",red_1_count, red_percentage);
-         //printf("blu = %d ==> %.2f%\n",blue_2_count, blue_percentage);
+         //printf("red = %d ==> %.2f\n",red_1_count, red_percentage);
+         //printf("blu = %d ==> %.2f\n",blue_2_count, blue_percentage);
          //printf("===============\n");
        }
        if (local_finished) break;
