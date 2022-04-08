@@ -6,7 +6,6 @@
 #include <pthread.h>
 #include <string.h>
 
-
 /* create struct to store thread arguments */
 struct thread_data {
   int tid;
@@ -19,6 +18,9 @@ typedef struct {
   int	count;	              	         // count of the number who have arrived
 } mylib_barrier_t;
 
+struct timespec start, finish;
+
+/* initialize global variables */ 
 time_t now;
 char time_local[100];
 int **board;                           //the main red/blue board used for computation
@@ -37,6 +39,7 @@ mylib_barrier_t barrier;               //barrier for thread synchronization
 bool global_finished; 
 
 
+/* initialize all functions */ 
 int** board_init(int row, int column);
 void redMovement(int start_row, int finish_row); 
 void blueMovement(int start_column, int finish_column); 
@@ -50,26 +53,26 @@ void selfCheck(int** board);
 
 int main(int argc, char **argv) {
   
-  /* initialize global time variable  */
+  /* initialize global timestamp */
   now = time (0);
   strftime (time_local, 100, "%Y-%m-%d-%H:%M:%S", localtime (&now)); 
 
   /* user input preliminary check */
   if(argc < 6 || argc > 6 ) {
-    printf("[Error]!!5 arguments expected!!\n");
-    printf("Input Format: mpirun –np <# of process> comp5426_wdai9162_assignment_1_red_blue_movement_v1_0 <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
-    printf("SAMPLE: mpirun –np 5 main 50 5 85 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
+    printf("[Error]5 arguments expected!!\n");
+    printf("Input Format: ./redblue_movement_v2_0_pthread <# of threads> <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
+    printf("SAMPLE: ./redblue_movement_v2_0_pthread 4 30 5 60 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
     exit(1);
    }
   else if(atoi(argv[2])%atoi(argv[3])!=0){
     printf("[Error]!!Grid size n must be divisible by the tile size t!!\n");
-    printf("SAMPLE: mpirun –np 5 main 25 5 50 500\n");
+    printf("SAMPLE: ./redblue_movement_v2_0_pthread 4 30 5 60 1000\n");
     exit(1);
   }
-  else if(atoi(argv[2])<0||atoi(argv[3])<0||atoi(argv[4])<0||atoi(argv[5])<0||atoi(argv[4])>100){
+  else if(atoi(argv[1])<0||atoi(argv[2])<0||atoi(argv[3])<0||atoi(argv[4])<0||atoi(argv[5])<0||atoi(argv[4])>100){
     printf("[Error]!!Do NOT input negative numbers or threshold c larger than 100!!\n");
-    printf("Input Format: mpirun –np <# of process> comp5426_wdai9162_assignment_1_red_blue_movement_v1_0 <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
-    printf("SAMPLE: mpirun –np 5 main 50 5 85 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
+    printf("Input Format: ./redblue_movement_v2_0_pthread <# of threads> <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
+    printf("SAMPLE: ./redblue_movement_v2_0_pthread 4 30 5 60 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
     exit(1);
   }
 
@@ -79,28 +82,21 @@ int main(int argc, char **argv) {
   c = atoi(argv[4]);                   //terminating threshold c
   max_iters = atoi(argv[5]);           //maximum number of iterations max_iters
   
-  tile_size = n/t;
+  tile_size = n/t;                     //each tile is of size tile_size x tile_size cells
   cells_in_tile = n/t * n/t;
   tile_column = t;
   
-  int i,j;
-
+  int i;
   pthread_t *thread_id;
-  //pthread_attr_t *attr; 
   struct thread_data *thread_data_array; 
-  
-  /* create arrays of thread_ids and thread thread_arg_array */
+  mylib_barrier_init(&barrier);
+
+  /* allocate memory for thread_ids and thread_data_array */
   thread_id = (pthread_t *)malloc(sizeof(pthread_t) * num_thrds);
   thread_data_array = (struct thread_data *) malloc (sizeof(struct thread_data) * num_thrds);  
 
-  bool finished;
-  bool local_finished = false;
-  bool global_finished = false;
-
-  mylib_barrier_init(&barrier);
+  /* initialize board for computation and make a copy of original state for self checcking */
   board = board_init(n,n);
-  
-  
   int *board_scheck_cell = (int *)malloc(n * n * sizeof(int));
   int **board_scheck = (int **)malloc(n * sizeof(int*));
   /* assign the row pointer to the right place on the board  */
@@ -111,8 +107,7 @@ int main(int argc, char **argv) {
   for(i=0; i<n; i++) {
     memcpy(board_scheck[i], board[i], sizeof(int) * n);
   }
-  printBoard(board_scheck,0,n);
-  
+
   printf("\n=================================================\n");
   printf("The board size：n = %d (%dX%d)\n", n, n, n);
   printf("The tile grid size: t = %d (%dX%d)\n", t, t, t);
@@ -121,29 +116,31 @@ int main(int argc, char **argv) {
   printf("Current Local Time: %s\n", time_local);
   printf("=================================================\n");
   
+  /* single thread messages */
   if (num_thrds==1) {
 
     printf("\n[Process #main] %s [single-thread]: INITIAL STATE of the board:\n\n", time_local);
     printBoard(board,0,n);
     printf("\n=================================================\n");
 
-    printf("[Process #main] %s [single-thread]: serial computation starting...\n", time_local);
-    clock_t begin = clock();
+    printf("[Process #main] %s [single-thread]: sequential computation starting...\n", time_local);
     
+    clock_gettime(CLOCK_REALTIME, &start);
     thread_data_array[0].tid = 0;
     pthread_create(&thread_id[0], NULL, threadComputation, &thread_data_array[0]);
     
-    /* Wait for all threads to complete then print global sum */ 
+    /* Wait for all threads to complete then print result */ 
     for (i=0; i < 1; i++) {
       pthread_join(thread_id[i],NULL);
     }
     
-    clock_t end = clock();
-    double time_spent_serial = (double)(end - begin) / CLOCKS_PER_SEC;
+    clock_gettime(CLOCK_REALTIME, &finish);
+    double time_spent_single = finish.tv_sec - start.tv_sec;
+    time_spent_single += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
 
     printf("[Process #main] %s [single-thread]: FINAL STATE of the board:\n", time_local);
     printBoard(board,0,n);
-    printf("[Process #main] %s [single-thread]: computation convergence time [%f]\n", time_local, time_spent_serial);
+    printf("[Process #main] %s [single-thread]: computation convergence time [%f]\n", time_local, time_spent_single);
   }
   
   else {
@@ -152,9 +149,9 @@ int main(int argc, char **argv) {
     printBoard(board,0,n);
     printf("\n=================================================\n");
 
-    printf("[Process #main] %s [multithreading]: thread computation has started...\n", time_local);
+    printf("[Process #main] %s [multithreading]: multi threading computation starting...\n", time_local);
     
-    clock_t begin = clock();
+    clock_gettime(CLOCK_REALTIME, &start);
     
     /* create the threads, then wait for them to finish */
     for (i = 0; i < num_thrds; i++){
@@ -168,9 +165,10 @@ int main(int argc, char **argv) {
     }
 
     /* calculate time spent in total for multithread computation */ 
-    clock_t end = clock();
-    double time_spent_multi = (double)(end - begin) / CLOCKS_PER_SEC;
-    
+    clock_gettime(CLOCK_REALTIME, &finish);
+    double time_spent_multi = finish.tv_sec - start.tv_sec;
+    time_spent_multi += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+
     //sequentialComputation(board,n,t,c,max_iters);
     printf("[Process #main] %s [multithreading]: FINAL STATE of the board:\n", time_local);
     printBoard(board,0,n);
@@ -180,24 +178,19 @@ int main(int argc, char **argv) {
     mylib_barrier_destroy(&barrier); /* destroy barrier object */
     
     /* Self checking serialization computation */
-    printf("[Process #main] %s [multithreading][check]: self check starting in 5 seconds...\n", time_local);
-    printf("[Process #main] %s [multithreading][check]: 5...\n", time_local);
-    sleep(1);
-    printf("[Process #main] %s [multithreading][check]: 4...\n", time_local);
-    sleep(1);
-    printf("[Process #main] %s [multithreading][check]: 3...\n", time_local);
-    sleep(1);
-    printf("[Process #main] %s [multithreading][check]: 2...\n", time_local);
-    sleep(1);
-    printf("[Process #main] %s [multithreading][check]: 1...\n", time_local);
-    sleep(1);
-
+    printf("[Process #main] %s [multithreading][check]: self check starting in 9 seconds...\n", time_local);
+    for (i=9;i>0;i--){
+       printf("[Process #main] %s [multithreading][check]: %d...\r", time_local,i);
+       sleep(1);
+      fflush(stdout);
+    }
     selfCheck(board_scheck);
 
   }
   pthread_exit (NULL);
 }
 
+/* this function is used to randomly generat a 2-d matrix for computation */ 
 int** board_init(int row, int column) {
 
   /* allocate memory block for all the cells on the board */
@@ -222,7 +215,7 @@ int** board_init(int row, int column) {
         *(board[i] + j) = rand()%3;
   return board;
 }
-
+/* this function is used to compute horizontall red movement */ 
 void redMovement(int start_row, int finish_row){
   
   int i,j;
@@ -243,7 +236,7 @@ void redMovement(int start_row, int finish_row){
     else if (board[i][0] == 4) board[i][0] = 0;
   }
 }
-
+/* this function is used to compute vertically blue movement */
 void blueMovement(int start_column, int finish_column){
 
   int i,j;
@@ -264,7 +257,7 @@ void blueMovement(int start_column, int finish_column){
     else if (board[0][j] == 4 ) board[0][j] = 0;
   }
 }
-
+/* this function is used to analyze convergence by calculating red/blue percentage in each tile */ 
 bool determineConvergence(int tile_row_start, int tile_row_finish, int tid){
 
   int red_1_count, blue_2_count;
@@ -284,8 +277,8 @@ bool determineConvergence(int tile_row_start, int tile_row_finish, int tid){
       /* initialize and reset red/blue count to Zero for each tile*/
       red_1_count = 0;
       blue_2_count = 0;
-      for (c_r = t_r * tile_size; c_r < (t_r+1)*tile_size; c_r++) {        //(t_r+1)*t is the start row of the below tile
-        for (c_c = t_c * tile_size; c_c < (t_c+1)*tile_size; c_c++){       //(t_c+1)*t is the start column of the tile on the right
+      for (c_r = t_r * tile_size; c_r < (t_r+1)*tile_size; c_r++) {        //(t_r+1)*tile_size is the start row of the below tile
+        for (c_c = t_c * tile_size; c_c < (t_c+1)*tile_size; c_c++){       //(t_c+1)*tile_size is the start column of the tile on the right
           if (board[c_r][c_c] == 1) {
             red_1_count+=1;                                                //if cell value is 1, red count plus 1;
           }
@@ -325,7 +318,13 @@ bool determineConvergence(int tile_row_start, int tile_row_finish, int tid){
   }
   return local_finished;
 }
-
+/* this is the main workload of each thread: 
+   1. calculate the portion of its assigned sub-matrix; 
+   2. call redMovement
+   3. call blueMovement 
+   4. call determineConvergence
+   5. update global_finished if any thread converges and therefore terminate all threads 
+*/
 void *threadComputation(void *thread_arg){
 
   struct thread_data *t_data; 
@@ -335,8 +334,6 @@ void *threadComputation(void *thread_arg){
   pthread_mutex_t	count_lock;
   t_data = (struct thread_data *)thread_arg;
   int tid = t_data->tid;                   // get my thread id from thread data
-
-  
 
   int q = t / num_thrds;                   //minimum tile numbers each process handles
   int r = t % num_thrds;                   //tile remainders
@@ -356,38 +353,30 @@ void *threadComputation(void *thread_arg){
 
   int tile_row_start = ib/tile_size;
   int tile_row_finish = (ib+K)/tile_size;
-
-  //printf("\n ib equlas to: %d\n", ib);
-  //printf("\n finish row equlas to: %d\n", ib+K);
-  //printf("\n start tile row equlas to: %d\n", ib/tile_size);
-  //printf("\n finish tile row equlas to: %d\n", (ib+K)/tile_size);
   
   while (!(global_finished) && n_itrs < max_iters){
     n_itrs++;
     redMovement(ib, ib+K);
-    //printf("thread ID #%d after %d n_itrs red move is: \n", tid, n_itrs);
-    //printBoard(board,ib,ib+K);
-    //printf("thread ID #%d after %d n_itrs blue move is: \n", tid, n_itrs);
     mylib_barrier(&barrier,num_thrds);
     blueMovement(ib, ib+K);
     mylib_barrier(&barrier,num_thrds);
-    //printBoard(board,ib,ib+K);
     local_finished = determineConvergence(tile_row_start, tile_row_finish, tid);
     if (local_finished) global_finished = true;
     mylib_barrier(&barrier,num_thrds);
-    if (global_finished) break;
+    if (global_finished) {
+      printf("[Thread #%d] %s [multithreading]: terminated after [%d] iterations\n", tid, time_local, n_itrs);
+      break;
+    }
   }
-
-
-  printf("\nTotal iterations = %d\n", n_itrs);
+  printf("[Thread #%d] %s [multithreading]: terminated after [%d] iterations\n", tid, time_local, n_itrs);
 }
-
+/* this function is used to define the barrier */
 void mylib_barrier_init(mylib_barrier_t *b){
   b->count = 0;
   pthread_mutex_init(&(b->count_lock), NULL);
   pthread_cond_init(&(b->all_thrd_compelte), NULL);
 }
-
+/* this fucntion is used to call the barrier */
 void mylib_barrier(mylib_barrier_t *b, int num_thrds)
 {
   pthread_mutex_lock(&(b->count_lock));
@@ -401,14 +390,14 @@ void mylib_barrier(mylib_barrier_t *b, int num_thrds)
   }
   pthread_mutex_unlock(&(b->count_lock));
 }
-
+/* this function is used to clean the barrier */ 
 void mylib_barrier_destroy(mylib_barrier_t *b) {
  
   pthread_mutex_destroy(&(b->count_lock));
   pthread_cond_destroy(&(b->all_thrd_compelte));
 
 }
-
+/* this function is used to print any given matrix */ 
 void printBoard(int** board, int start_row, int finish_row){
   
   int i,j; 
@@ -419,7 +408,7 @@ void printBoard(int** board, int start_row, int finish_row){
     printf("\n");
   }
 }
-
+/* this function is used to do self check by sequential computation */
 void selfCheck(int** board_scheck){
 
   bool finished_check = false;
@@ -430,7 +419,7 @@ void selfCheck(int** board_scheck){
 
   printf("[Process #main] %s [multithreading][check]: self checking computation in progress...\n", time_local);
 
-  clock_t begin_c = clock();
+  clock_gettime(CLOCK_REALTIME, &start);
   while (!finished_check && n_itrs_check < max_iters){
     n_itrs_check++;
     /***** Stage 1: Red Movement ******/
@@ -514,10 +503,11 @@ void selfCheck(int** board_scheck){
       }
     }
   }
-  clock_t end_c = clock();
-  double time_spent_check = (double)(end_c - begin_c) / CLOCKS_PER_SEC;
+  clock_gettime(CLOCK_REALTIME, &finish);
+  double time_spent_check = finish.tv_sec - start.tv_sec;
+  time_spent_check += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
 
-  printf("[Process #main] %s [multithreading][check]: self checking iteration = [%d] ==> FINAL SELF CHECK STATE of the board_scheck:\n", time_local,n_itrs_check);
+  printf("[Process #main] %s [multithreading][check]: self checking completed after [%d] iterations. FINAL SELF CHECK STATE of the board_scheck:\n", time_local,n_itrs_check);
   printBoard(board_scheck,0,n);
   
   //validate each cell and count the difference
@@ -530,10 +520,10 @@ void selfCheck(int** board_scheck){
     }
   }
   if (cell_dif == 0){
-    printf("[Process #main] %s [multithreading][check]: multithreading computation matches self checking serial computation result!!\n", time_local);
+    printf("[Process #main] %s [multithreading][check]: multithreading computation matches self checking sequential computation result!!\n", time_local);
   }
   else {
-    printf("[Process #main] %s [multithreading][check]: Oops...there are [%d] cells different between multithreading computation and self checking serial computation result...\n", time_local, cell_dif);
+    printf("[Process #main] %s [multithreading][check]: Oops...there are [%d] cells different between multithreading computation and sequential self checking computation result...\n", time_local, cell_dif);
   }
-  printf("[Process #main] %s [multithreading][check]: sequential self-checking computation convergence time [%f]\n", time_local, time_spent_check);
+  printf("[Process #main] %s [multithreading][check]: sequential self checking computation convergence time [%f]\n", time_local, time_spent_check);
 }
