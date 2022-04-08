@@ -60,19 +60,19 @@ int main(int argc, char **argv) {
   /* user input preliminary check */
   if(argc < 6 || argc > 6 ) {
     printf("[Error]5 arguments expected!!\n");
-    printf("Input Format: ./redblue_mov_pthread_ass2b <# of threads> <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
-    printf("SAMPLE: ./redblue_mov_pthread_ass2b 4 30 5 60 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
+    printf("Input Format: ./redblue_movement_v2_0_pthread <# of threads> <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
+    printf("SAMPLE: ./redblue_movement_v2_0_pthread 4 30 5 60 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
     exit(1);
    }
   else if(atoi(argv[2])%atoi(argv[3])!=0){
     printf("[Error]!!Grid size n must be divisible by the tile size t!!\n");
-    printf("SAMPLE: ./redblue_mov_pthread_ass2b 4 30 5 60 1000\n");
+    printf("SAMPLE: ./redblue_movement_v2_0_pthread 4 30 5 60 1000\n");
     exit(1);
   }
   else if(atoi(argv[1])<0||atoi(argv[2])<0||atoi(argv[3])<0||atoi(argv[4])<0||atoi(argv[5])<0||atoi(argv[4])>100){
     printf("[Error]!!Do NOT input negative numbers or threshold c larger than 100!!\n");
-    printf("Input Format: ./redblue_mov_pthread_ass2b <# of threads> <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
-    printf("SAMPLE: ./redblue_mov_pthread_ass2b 4 30 5 60 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
+    printf("Input Format: ./redblue_movement_v2_0_pthread <# of threads> <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
+    printf("SAMPLE: ./redblue_movement_v2_0_pthread 4 30 5 60 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
     exit(1);
   }
 

@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
   /* user input preliminary check */
   if(argc < 5 || argc > 5 ) {
     printf("[Error]!!4 arguments expected!!\n");
-    printf("Input Format: mpirun –np <# of process> comp5426_wdai9162_assignment_1_red_blue_movement_v1_0 <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
+    printf("Input Format: mpirun –np <# of process> red_blue_movement_v1_0_parallel_mpi <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
     printf("SAMPLE: mpirun –np 5 main 50 5 85 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
     exit(1);
    }
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
   }
   else if(atoi(argv[1])<0||atoi(argv[2])<0||atoi(argv[3])<0||atoi(argv[4])<0||atoi(argv[3])>100){
     printf("[Error]!!Do NOT input negative numbers or threshold c larger than 100!!\n");
-    printf("Input Format: mpirun –np <# of process> comp5426_wdai9162_assignment_1_red_blue_movement_v1_0 <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
+    printf("Input Format: mpirun –np <# of process> red_blue_movement_v1_0_parallel_mpi <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
     printf("SAMPLE: mpirun –np 5 main 50 5 85 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
     exit(1);
   }
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
   /* user input preliminary check */
   if(numprocs > t){
     printf("[Error]!!You are wasting computational resource!!Be frugal!!\n");
-    printf("Input Format: mpirun –np <# of process> comp5426_wdai9162_assignment_1_red_blue_movement_v1_0 <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
+    printf("Input Format: mpirun –np <# of process> red_blue_movement_v1_0_parallel_mpi <grid size: int n> <tile size: int t> <threshold(percent): int c> <max iteration: int max_iters>\n");
     printf("SAMPLE: mpirun –np 5 main 50 5 85 1000 (n MUST be divisible by t)(# of process MUST NOT be greater than t)\n");
     exit(0);
   }
